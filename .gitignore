@@ -1,0 +1,12 @@
+# Python environment - never commit
+.venv/
+anaconda_projects/
+
+# Data - never commit
+data/raw/
+data/clean/
+warehouse/
+
+
+
+
