@@ -1,0 +1,23 @@
+[
+  {
+    "file_name": "appointments_regional.csv",
+    "size_bytes": 38723935,
+    "sha256": "821ead75b094778f0f40807b0c524c7b6b01135773b12dcb6d0de5ab5ab0926f",
+    "row_count": 596821,
+    "extracted at": "2026-10-12T23:29:38+00:00"
+  },
+  {
+    "file_name": "national_categories.csv",
+    "size_bytes": 111908809,
+    "sha256": "3acab693f9425eb3e76a1b378b0c1f809999d2b5e399498a0dccb7f350b5562f",
+    "row_count": 817394,
+    "extracted at": "2026-10-12T23:29:38+00:00"
+  },
+  {
+    "file_name": "actual_duration.csv",
+    "size_bytes": 14300305,
+    "sha256": "9fa2db87a0e2cfef61e520a3a8a5bfe76d2358285b3b577998bcce63ef40e91d",
+    "row_count": 137793,
+    "extracted at": "2026-10-12T23:29:38+00:00"
+  }
+]
