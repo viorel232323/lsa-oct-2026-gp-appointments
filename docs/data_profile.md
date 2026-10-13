@@ -52,3 +52,48 @@
 - Alphabetical order is wrong for the bands: `15 to 21 Days` sorts before `2 to 7 Days`.
 
 **4. Month is text, not a date.**
+
+<br>
+
+## 2. national_categories.csv
+
+<br>
+
+### Overview
+| Item | Value |
+|---|---|
+| Rows × columns | 817,394 × 8 |
+| Period | 2021-08-01 to 2022-06-30 (334 days, 11 months) |
+| Total appointments | 296,046,770 |
+| Nulls | None in any column |
+| Grain (one row is) | Sub-ICB location × day × service setting × national category. **Unique (0 duplicates)** |
+
+### Columns
+| Column | Type (as found) | Nulls | Distinct | Example | Notes |
+|---|---|---|---|---|---|
+| appointment_date | text | 0 | 334 | 02/08/2021 | **Day-first** text (2 August), not a date |
+| icb_ons_code | text | 0 | 42 | E54000050 | Same 42 ICBs as the regional file |
+| sub_icb_location_name | text | 0 | 106 | NHS North East and North Cumbria ICB - 00L | Sub-ICB **code is hidden at the end** of the name  |
+| service_setting | text | 0 | 5 | Primary Care Network | Extended Access Provision, General Practice, Other, Primary Care Network, Unmapped |
+| context_type | text | 0 | 3 | Care Related Encounter | Care Related Encounter, Inconsistent Mapping, Unmapped |
+| national_category | text | 0 | 18 | Patient contact during Care Home Round | 18 categories |
+| count_of_appointments | integer | 0 | 9,957 | 3 | The measure.  `Sum` it. |
+| appointment_month | text | 0 | 11 | 2021-08 | Text `YYYY-MM`, same format as the regional file |
+
+### Findings
+
+**1. Coverage:** 334 distinct dates = **every day** from 1 Aug 2021 to 30 Jun 2022,
+so no missing days. 42 ICBs, 106 sub-ICB locations, no nulls, **total appointments** 296,046,770.
+
+**2. Day-first dates** 
+
+`appointment_date` is text like `02/08/2021`, meaning **2 August**, not 8 February.
+
+- the first number goes up to **31**, and no month is above 12, so it must be the day.
+
+**3. Hidden byte-order mark**
+- First 3 bytes of the file
+- pandas removes it silently, so it doesn't show in the profile. Spark may read it.
+
+**4. Sub-ICB code is inside the name**
+- `NHS North East and North Cumbria ICB - 00L` → the code is `00L`.
