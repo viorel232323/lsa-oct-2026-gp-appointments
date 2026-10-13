@@ -27,18 +27,19 @@
 ### Columns
 | Column | Type(as found) | Nulls | Distinct | Example | Notes |
 |---|---|---|---|---|---|
-| icb_ons_code | text | 0 | 42 | E54000034 | Matches the 42 ICBs |
+| icb_ons_code | text | 0 | 42 | E54000034 |  |
 | appointment_month | text | 0 | 30 | 2020-01 | Text `YYYY-MM`, not a date |
 | appointment_status | text | 0 | 3 | Attended | Attended, DNA (did not attend), Unknown |
 | hcp_type | text | 0 | 3 | GP | GP, Other Practice staff, Unknown |
 | appointment_mode | text | 0 | 5 | Face-to-Face | Face-to-Face, Home Visit, Telephone, Unknown, Video/Online |
 | time_between_book_and_appointment | text | 0 | 8 | 1 Day |'Same Day', '1 Day','2 to 7 Days', '8 to 14 Days', '15 to 21 Days' , '22 to 28 Days', , 'More than 28 Days', 'Unknown / Data Quality'|
-| count_of_appointments | integer | 0 | 22,807 | 8107 | The measure. Always **sum** it |
+| count_of_appointments | integer | 0 | 22,807 | 8107 | |
+<br>
 
 
 ### Findings
 
-**1 Coverage checks out.** 42 ICBs, 30 months, no nulls, total 742,804,525.
+**1 Coverage:** 42 ICBs, 30 months, no nulls, **total** 742,804,525.
 
 **2. Duplicate rows: keep and sum, never drop**
 - **21,604** rows are exact copies of another row.
