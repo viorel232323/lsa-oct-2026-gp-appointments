@@ -97,3 +97,59 @@ so no missing days. 42 ICBs, 106 sub-ICB locations, no nulls, **total appointmen
 
 **4. Sub-ICB code is inside the name**
 - `NHS North East and North Cumbria ICB - 00L` → the code is `00L`.
+
+## 3. actual_duration.csv
+
+### Overview
+| Item | Value |
+|---|---|
+| Rows × columns | 137,793 × 8 |
+| Period | 2021-12-01 to 2022-06-30 |
+| Total appointments | 167,980,692 |
+| Nulls | 0 |
+| Grain (one row is) | Sub-ICB location × day × duration band. ___ (0 duplicates = unique) |
+
+### Columns
+| Column | Type (as found) | Nulls | Distinct | Example | Notes |
+|---|---|---|---|---|---|
+|sub_icb_location_code|text|0| 106 |00L |Sub-ICB code in **its own column** (in the categories file it's hidden in the name) |  
+|sub_icb_location_ons_code|  text |  0 | 106 |E38000130 |      
+|sub_icb_location_name|text |  0 | 106 |NHS North East and North Cumbria ICB - 00L| 
+|icb_ons_code|text |0 | 42 | E54000050 | Same 42 ICBs as the other files
+|region_ons_code| text | 0 |   7 |  E40000012 | The 7 NHS regions.
+|appointment_date| text | 0 | 212 | 2021-12-01 | Text `YYYY-MM-DD` (year-month-day)
+|actual_duration|  text | 0 | 7 |   31-60 Minutes | 6 time bands + Unknown / Data Quality
+|count_of_appointments| text | 0 | 7611 | 364 | The measure.
+
+### Findings
+
+**1. Coverage.** 212 distinct dates = **every day** from 1 Dec 2021 to 30 Jun 2022,
+so no missing days. 7 regions, 42 ICBs, 106 sub-ICB locations, no nulls.
+The 7 duration bands add up exactly to the total of 167,980,692.
+
+
+**2. The file is Excel, not CSV** 
+
+- The name ends `.csv.xlsx`: it is an Excel workbook, and Spark cannot read Excel.
+
+**3. A third date format**
+- Dates are text `2021-12-01` (year-month-day), created by the Excel conversion.
+- Each file stores dates differently.
+
+**4. Almost a quarter of durations are unusable**
+
+| Duration band | Appointments | Share |
+|---|---:|---:|
+| 1-5 Minutes | 28,600,865 | 
+| 6-10 Minutes | 33,800,815 | 
+| 11-15 Minutes | 25,160,882 | 
+| 16-20 Minutes | 16,004,247 | 
+| 21-30 Minutes | 15,026,365 |
+| 31-60 Minutes | 9,103,432 | 
+| **Unknown / Data Quality** | **40,284,086** | **24.0%** |
+| **Total** | **167,980,692** | 
+
+**5. Band order is wrong when sorted alphabetically**
+- Alphabetical order puts `11-15 Minutes` before `6-10 Minutes`.
+
+**6. No duplicates.** 0 exact duplicate rows.

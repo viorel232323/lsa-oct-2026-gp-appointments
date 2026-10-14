@@ -1,4 +1,4 @@
-#%% 
+#%%                                                      (Run each #%% <--Cell )
 
 
 import pandas as pd
@@ -39,7 +39,7 @@ print(f"Rows sharing the same key: {Regional.duplicated(subset=key_cols).sum():,
 
 
 
-# %%  national_categories.csv 
+# %%  national_categories.csv                             (Run each #%% <--Cell )
 
 Categories = pd.read_csv(ROW / "national_categories.csv")
 
@@ -70,5 +70,29 @@ print(f"Exact duplicate rows: {Categories.duplicated().sum():,}")
 cat_key = Categories.columns.drop("count_of_appointments")
 print(f"Rows sharing the same key: {Categories.duplicated(subset=cat_key).sum():,}")
 
+
+# %%  actual_duration.csv                                (Run each #%% <--Cell )
+pd.set_option("display.width", 200)
+Duration = pd.read_csv(ROW / "actual_duration.csv")
+
+print("Rows,Columns:" ,Duration.shape)
+print(profile(Duration))
+
+print(f"\nTotal appointments: {Duration['count_of_appointments'].sum():,}")
+print(f"Exact duplicate rows: {Duration.duplicated().sum()}")
+
+#Last 3 dates to check data format
+print(f"Last dates check: {Duration['appointment_date'].tail(3).tolist()}")
+
+period = pd.to_datetime(Duration['appointment_date'],format="%Y-%m-%d")
+print("Period:", period.min().date(),"to",period.max().date())
+
+# Appointments per duration bands
+print("\nAppointments by duration bands\n")
+band_col = "actual_duration"
+by_band = Duration.groupby(band_col)['count_of_appointments'].sum()
+print(by_band.map("{:,}".format))
+
+print(f"\nUnknown share: {by_band.filter(like='Unknown').sum() / by_band.sum():.1%}")
 
 # %%
