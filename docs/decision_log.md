@@ -29,3 +29,13 @@ Numbers come from `src/transform.py` and `docs/data_profile.md`.
 
 ### D5. Standardise `Other Practice staff` → `Other Practice Staff`
 - **Why:** match the spelling in the metadata.
+
+### D6. Sum rows, never drop them
+- **What:** after cleaning the labels, rows with the same key (ICB, month, status, HCP type, mode, booking wait) were combined with `groupBy` + `sum`.
+- **Why:** each row holds real, separate appointments. Dropping them as "duplicates" would delete appointments and shrink the total. Summing keeps every appointment and leaves one row per key.
+- **Evidence:** rows 596,821 → 295,692; total appointments 742,804,525 before and after **(unchanged)**.
+
+### D7. One Parquet file per month folder
+- **What:** `.repartition("appointment_month")` before writing.
+- **Why:** without it, each of the 8 shuffle chunks wrote its own file into every month folder (240 small files). Many tiny files are slow to read.
+- **Evidence:** 240 -> 30 Parquet files; rows and total unchanged after reading back.

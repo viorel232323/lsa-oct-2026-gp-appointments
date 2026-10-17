@@ -31,7 +31,7 @@
 | appointment_month | text | 0 | 30 | 2020-01 | Text `YYYY-MM`, not a date |
 | appointment_status | text | 0 | 3 | Attended | Attended, DNA (did not attend), Unknown |
 | hcp_type | text | 0 | 3 | GP | GP, Other Practice staff, Unknown |
-| appointment_mode | text | 0 | 5 | Face-to-Face | Face-to-Face, Home Visit, Telephone, Unknown, Video/Online |
+| appointment_mode | text | 0 | 5 | Face-to-Face | Face-to-Face, Home Visit, Telephone, , Video/Online, Unknown |
 | time_between_book_and_appointment | text | 0 | 8 | 1 Day |'Same Day', '1 Day','2 to 7 Days', '8 to 14 Days', '15 to 21 Days' , '22 to 28 Days', , 'More than 28 Days', 'Unknown / Data Quality'|
 | count_of_appointments | integer | 0 | 22,807 | 8107 | |
 <br>
@@ -39,7 +39,7 @@
 
 ### Findings
 
-**1 Coverage:** 42 ICBs, 30 months, no nulls, **total** 742,804,525.
+**1 Coverage:** 42 ICBs, 30 months, no nulls, **Total appointments:** 742,804,525.
 
 **2. Duplicate rows: keep and sum, never drop**
 - **21,604** rows are exact copies of another row.
@@ -52,6 +52,11 @@
 - Alphabetical order is wrong for the bands: `15 to 21 Days` sorts before `2 to 7 Days`.
 
 **4. Month is text, not a date.**
+
+**5. appointment_status - Unknown:**  In some cases, 
+the final status of an appointment remains as ‘Booked’. It is not known from the data whether or not these appointments actually attended. For this reason, the status of these appointments is reported as 'Unknown'.
+
+
 
 <br>
 
@@ -74,7 +79,7 @@
 | appointment_date | text | 0 | 334 | 02/08/2021 | **Day-first** text (2 August), not a date |
 | icb_ons_code | text | 0 | 42 | E54000050 | Same 42 ICBs as the regional file |
 | sub_icb_location_name | text | 0 | 106 | NHS North East and North Cumbria ICB - 00L | Sub-ICB **code is hidden at the end** of the name  |
-| service_setting | text | 0 | 5 | Primary Care Network | Extended Access Provision, General Practice, Other, Primary Care Network, Unmapped |
+| service_setting | text | 0 | 5 | Primary Care Network | Extended Access Provision, General Practice,Primary Care Network, Other, Unmapped |
 | context_type | text | 0 | 3 | Care Related Encounter | Care Related Encounter, Inconsistent Mapping, Unmapped |
 | national_category | text | 0 | 18 | Patient contact during Care Home Round | 18 categories |
 | count_of_appointments | integer | 0 | 9,957 | 3 | The measure.  `Sum` it. |
