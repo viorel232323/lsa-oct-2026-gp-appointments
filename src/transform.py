@@ -99,11 +99,60 @@ print(f"Total appointments: {back.agg(F.sum('count_of_appointments')).first()[0]
 print("Parquet files:", len(list(Path("data/clean/regional").rglob("*.parquet"))))  
 back.printSchema()                                                                  
 
+#%% national_categories.csv
+
+categories_schema = """
+    appointment_date       STRING,
+    icb_ons_code           STRING,
+    sub_icb_location_name  STRING,
+    service_setting        STRING,
+    context_type           STRING,
+    national_category      STRING,
+    count_of_appointments  INT,
+    appointment_month      STRING
+"""
+categories = spark.read.csv("data/raw/national_categories.csv",
+                            header=True, schema=categories_schema, mode="FAILFAST")
+print(f"Rows: {categories.count():,}")       
+
+#Categories: transform: appointment_date -> date
+                           #Extract sub-icb code
+                           #Trim extra spaces
+categories = (categories
+    .withColumn("appointment_date", F.to_date("appointment_date", "dd/MM/yyyy"))
+    .withColumn("sub_icb_code", F.regexp_extract("sub_icb_location_name", r"-\s*(\w+)\s*$", 1)))
+
+for c in ["service_setting", "context_type", "national_category"]:
+    categories = categories.withColumn(c, F.trim(F.regexp_replace(c, r"\s+", " ")))
+
+#Categories: checks
+total = categories.agg(F.sum("count_of_appointments")).first()[0]
+print(f"Total appointments: {total:,}")   
+print("Empty dates:", categories.filter(F.col("appointment_date").isNull()).count())
+print("Month mismatches:",
+      categories.filter(F.date_format("appointment_date", "yyyy-MM") != F.col("appointment_month")).count()) 
+print("Distinct sub-ICB codes:", categories.select("sub_icb_code").distinct().count()) 
+print("Empty codes:", categories.filter(F.col("sub_icb_code") == "").count())
+
+# %% Categories: write
+(categories
+    .repartition("appointment_month")
+    .write.mode("overwrite")
+    .partitionBy("appointment_month")
+    .parquet("data/clean/categories"))
+print("written")
+
+#No duplicate Keys
+key = ["appointment_date", "sub_icb_location_name", "service_setting", "context_type", "national_category"]
+print("Key duplicates:", categories.count() - categories.select(key).distinct().count())   
+
+
 
 
 
 #%% Check schema
 regional.printSchema()
+categories.printSchema()
 
 # %% Stop Spark session(release memory)
 spark.stop()

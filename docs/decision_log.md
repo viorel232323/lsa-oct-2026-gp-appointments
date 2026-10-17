@@ -39,3 +39,26 @@ Numbers come from `src/transform.py` and `docs/data_profile.md`.
 - **What:** `.repartition("appointment_month")` before writing.
 - **Why:** without it, each of the 8 shuffle chunks wrote its own file into every month folder (240 small files). Many tiny files are slow to read.
 - **Evidence:** 240 -> 30 Parquet files; rows and total unchanged after reading back.
+
+## national_categories.csv
+
+**Reused rules:** D1–D2 (explicit schema, FAILFAST), D4 (repeated spaces collapsed in `service_setting`, `context_type`, `national_category`), D7 (one Parquet file per month folder).
+
+### D8. Explicit schema removes the hidden mark in the header
+- **What:** read with an explicit schema plus `header=True`.
+- **Why:** the file starts with 3 invisible bytes (EF BB BF, a "byte-order mark"). Without a schema, Spark names the first column `\ufeffappointment_date`, so any code using `appointment_date` fails. With a schema, the names come from my schema, not the file.
+
+### D9. Day-first dates parsed with a fixed format
+- **What:** `F.to_date("appointment_date", "dd/MM/yyyy")`.
+- **Why:** dates are UK style (`02/08/2021` = 2 August). If the format were guessed, it could be read as 8 February. A fixed format leaves nothing to guess.
+- **Evidence:** 0 empty dates; 0 rows where the date's month is not = `appointment_month`.
+
+### D10. Sub-ICB code extracted from the name
+- **What:** new column `sub_icb_code` = `regexp_extract(sub_icb_location_name, r"-\s*(\w+)\s*$", 1)`. The original name column is kept.
+- **Why:** this file has no code column; the code only appears at the end of the name (`NHS Kent and Medway ICB - 91Q` -> `91Q`). The duration file has `sub_icb_location_code`, so a code column lets the two be matched. The `$` (end of text) means dashes inside names, like Stoke-on-Trent, are ignored.
+- **Evidence:** 106 distinct codes; 0 empty codes.
+
+### D11. No grouping needed
+- **What:** no `groupBy` / `sum` on this file, unlike regional (D6).
+- **Why:** each row is already unique on its key (date, sub-ICB, service setting, context type, national category), so there is nothing to combine.
+- **Evidence:** 0 key duplicates after cleaning; rows 817,394 in and out; total 296,046,770 unchanged.
