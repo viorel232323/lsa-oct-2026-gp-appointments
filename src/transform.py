@@ -134,6 +134,11 @@ print("Month mismatches:",
 print("Distinct sub-ICB codes:", categories.select("sub_icb_code").distinct().count()) 
 print("Empty codes:", categories.filter(F.col("sub_icb_code") == "").count())
 
+#No duplicate Keys
+key = ["appointment_date", "sub_icb_location_name", "service_setting", "context_type", "national_category"]
+print("Key duplicates:", categories.count() - categories.select(key).distinct().count())   
+
+
 # %% Categories: write
 (categories
     .repartition("appointment_month")
@@ -142,10 +147,47 @@ print("Empty codes:", categories.filter(F.col("sub_icb_code") == "").count())
     .parquet("data/clean/categories"))
 print("written")
 
-#No duplicate Keys
-key = ["appointment_date", "sub_icb_location_name", "service_setting", "context_type", "national_category"]
-print("Key duplicates:", categories.count() - categories.select(key).distinct().count())   
+#%% Read appointments_duration.csv with an explicit schema
+duration_schema = """
+    sub_icb_location_code      STRING,
+    sub_icb_location_ons_code  STRING,
+    sub_icb_location_name      STRING,
+    icb_ons_code               STRING,
+    region_ons_code            STRING,
+    appointment_date           STRING,
+    actual_duration            STRING,
+    count_of_appointments      INT
+"""
+duration = spark.read.csv("data/raw/actual_duration.csv",
+                          header=True, schema=duration_schema, mode="FAILFAST")
+print(f"Rows: {duration.count():,}")     
+duration.select("appointment_date").show(4)
 
+# Dates, month column, label tidy
+
+duration = (duration
+    .withColumn("appointment_date", F.to_date("appointment_date", "yyyy-MM-dd"))
+    .withColumn("appointment_month", F.date_format("appointment_date", "yyyy-MM"))
+    .withColumn("actual_duration", F.trim(F.regexp_replace("actual_duration", r"\s+", " "))))
+
+#Duration: checks
+total = duration.agg(F.sum("count_of_appointments")).first()[0]
+print(f"Total appointments: {total:,}")                                                          
+print("Empty dates:", duration.filter(F.col("appointment_date").isNull()).count())  
+duration.select("appointment_month").distinct().orderBy("appointment_month").show()  #7 months
+duration.groupBy("actual_duration").count().orderBy("actual_duration").show(truncate=False)  # the duration bands
+
+key = ["sub_icb_location_code", "appointment_date", "actual_duration"]
+print("Key duplicates:", duration.count() - duration.select(key).distinct().count())
+
+#%% Duration: Write
+
+(duration
+    .repartition("appointment_month")
+    .write.mode("overwrite")
+    .partitionBy("appointment_month")
+    .parquet("data/clean/duration"))
+print("written")
 
 
 

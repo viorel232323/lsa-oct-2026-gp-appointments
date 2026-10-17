@@ -1,4 +1,4 @@
-# Decision Log — Week 2 Transform
+# Decision Log -  Transform
 
 Every change made to the data between `data/raw/` and `data/clean/`, and why.
 Numbers come from `src/transform.py` and `docs/data_profile.md`.
@@ -62,3 +62,32 @@ Numbers come from `src/transform.py` and `docs/data_profile.md`.
 - **What:** no `groupBy` / `sum` on this file, unlike regional (D6).
 - **Why:** each row is already unique on its key (date, sub-ICB, service setting, context type, national category), so there is nothing to combine.
 - **Evidence:** 0 key duplicates after cleaning; rows 817,394 in and out; total 296,046,770 unchanged.
+
+## actual_duration.csv
+
+**Reused rules:** D1–D2 (explicit schema, FAILFAST), D4 (repeated spaces collapsed in `actual_duration`), D7 (one Parquet file per month folder).
+
+### D12. Year-first dates parsed with a fixed format
+- **What:** `F.to_date("appointment_date", "yyyy-MM-dd")`.
+- **Why:** this CSV was made from the Excel file by pandas in Extract, which writes dates year-first (`2021-12-01`). A fixed format leaves nothing to guess.
+- **Evidence:** 0 empty dates.
+
+### D13. `appointment_month` added from the date
+- **What:** `F.date_format("appointment_date", "yyyy-MM")` as a new text column.
+- **Why:** this file only has a daily date. The other two files have `appointment_month`, so adding it lets all three be partitioned the same way and compared by month.
+- **Evidence:** 7 months, 2021-12 to 2022-06.
+
+### D14. Keep the "Unknown / Data Quality" band
+- **What:** rows with `actual_duration = "Unknown / Data Quality"` are kept, not removed.
+- **Why:** they are real appointments whose length wasn't recorded. Removing them would shrink the total and hide a data-quality issue the dashboard should show.
+- **Evidence:** 20,161 rows kept; total 167,980,692 unchanged.
+
+### D15. Duration covers only 7 months (limitation)
+- **What:** no fix possible; recorded as a limitation.
+- **Why:** the source only has Dec 2021 – Jun 2022, while regional covers Jan 2020 – Jun 2022. Any comparison using duration must be limited to those 7 months.
+- **Evidence:** distinct `appointment_month` = 7 values.
+
+### D16. No grouping needed
+- **What:** no `groupBy` / `sum`, same as D11.
+- **Why:** each row is already unique on its key (sub-ICB code, date, duration band).
+- **Evidence:** 0 key duplicates; rows 137,793 in and out; total 167,980,692 **unchanged**.
