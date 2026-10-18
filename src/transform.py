@@ -1,4 +1,4 @@
-#%% Spark Initialisation
+# Spark Initialisation
 import os, sys
 os.environ["PYSPARK_PYTHON"] = sys.executable
 os.environ["PYSPARK_DRIVER_PYTHON"] = sys.executable
@@ -80,7 +80,7 @@ total_after = regional_clean.agg(F.sum("count_of_appointments")).first()[0]
 print(f"Rows: {rows_before:,} -> {rows_after:,}")
 print(f"Total appointments: {total_before:,} -> {total_after:,}")
 
-#%% Writing Regional as Paquet
+# Writing Regional as Paquet
 
 (regional_clean
     .repartition("appointment_month")
@@ -90,7 +90,7 @@ print(f"Total appointments: {total_before:,} -> {total_after:,}")
     .parquet("data/clean/regional"))
 print("written")
 
-#%% Read back and count
+# Read back and count
 
 from pathlib import Path
 back = spark.read.parquet("data/clean/regional")
@@ -99,7 +99,7 @@ print(f"Total appointments: {back.agg(F.sum('count_of_appointments')).first()[0]
 print("Parquet files:", len(list(Path("data/clean/regional").rglob("*.parquet"))))  
 back.printSchema()                                                                  
 
-#%% national_categories.csv
+# national_categories.csv
 
 categories_schema = """
     appointment_date       STRING,
@@ -139,7 +139,7 @@ key = ["appointment_date", "sub_icb_location_name", "service_setting", "context_
 print("Key duplicates:", categories.count() - categories.select(key).distinct().count())   
 
 
-# %% Categories: write
+#Categories: write
 (categories
     .repartition("appointment_month")
     .write.mode("overwrite")
@@ -147,7 +147,7 @@ print("Key duplicates:", categories.count() - categories.select(key).distinct().
     .parquet("data/clean/categories"))
 print("written")
 
-#%% Read appointments_duration.csv with an explicit schema
+#Read appointments_duration.csv with an explicit schema
 duration_schema = """
     sub_icb_location_code      STRING,
     sub_icb_location_ons_code  STRING,
@@ -163,7 +163,7 @@ duration = spark.read.csv("data/raw/actual_duration.csv",
 print(f"Rows: {duration.count():,}")     
 duration.select("appointment_date").show(4)
 
-# Dates, month column, label tidy
+#Dates, month column, label tidy
 
 duration = (duration
     .withColumn("appointment_date", F.to_date("appointment_date", "yyyy-MM-dd"))
@@ -180,7 +180,7 @@ duration.groupBy("actual_duration").count().orderBy("actual_duration").show(trun
 key = ["sub_icb_location_code", "appointment_date", "actual_duration"]
 print("Key duplicates:", duration.count() - duration.select(key).distinct().count())
 
-#%% Duration: Write
+#Duration: Write
 
 (duration
     .repartition("appointment_month")
@@ -192,9 +192,9 @@ print("written")
 
 
 
-#%% Check schema
+#Check schema
 regional.printSchema()
 categories.printSchema()
 
-# %% Stop Spark session(release memory)
+#Stop Spark session(release memory)
 spark.stop()

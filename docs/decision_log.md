@@ -33,7 +33,7 @@ Numbers come from `src/transform.py` and `docs/data_profile.md`.
 ### D6. Sum rows, never drop them
 - **What:** after cleaning the labels, rows with the same key (ICB, month, status, HCP type, mode, booking wait) were combined with `groupBy` + `sum`.
 - **Why:** each row holds real, separate appointments. Dropping them as "duplicates" would delete appointments and shrink the total. Summing keeps every appointment and leaves one row per key.
-- **Evidence:** rows 596,821 → 295,692; total appointments 742,804,525 before and after **(unchanged)**.
+- **Evidence:** rows **596,821 → 295,692**; total appointments 742,804,525 before and after **(unchanged)**.
 
 ### D7. One Parquet file per month folder
 - **What:** `.repartition("appointment_month")` before writing.
@@ -61,7 +61,7 @@ Numbers come from `src/transform.py` and `docs/data_profile.md`.
 ### D11. No grouping needed
 - **What:** no `groupBy` / `sum` on this file, unlike regional (D6).
 - **Why:** each row is already unique on its key (date, sub-ICB, service setting, context type, national category), so there is nothing to combine.
-- **Evidence:** 0 key duplicates after cleaning; rows 817,394 in and out; total 296,046,770 unchanged.
+- **Evidence:** 0 key duplicates after cleaning; **rows 817,394 in and out**; total 296,046,770 unchanged.
 
 ## actual_duration.csv
 
@@ -90,4 +90,11 @@ Numbers come from `src/transform.py` and `docs/data_profile.md`.
 ### D16. No grouping needed
 - **What:** no `groupBy` / `sum`, same as D11.
 - **Why:** each row is already unique on its key (sub-ICB code, date, duration band).
-- **Evidence:** 0 key duplicates; rows 137,793 in and out; total 167,980,692 **unchanged**.
+- **Evidence:** 0 key duplicates; **rows 137,793 in and out**; total 167,980,692 **unchanged**.
+
+## Tests
+
+### D17. Tests read the clean Parquet with pandas
+- **What:** `tests/test_clean_data.py` has 6 tests: row counts, totals preserved, no duplicate keys, no double spaces, dates day-first, counts positive.
+- **Why:** pandas starts in seconds with no Java. A second, independent tool also proves the Parquet files are readable outside Spark. Totals are compared with the raw CSVs, not only with typed numbers.
+- **Evidence:** 6 passed (result in README). Test was broken on purpose once and failed, proving it catches its rule.
