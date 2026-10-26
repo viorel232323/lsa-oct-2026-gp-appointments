@@ -1,12 +1,18 @@
 # Python environment - never commit
 .venv/
 anaconda_projects/
-
+__pycache__/
+.ipynb_checkpoints/
 # Data - never commit
+data/source/
 data/raw/
 data/clean/
 warehouse/
 
+logs/
+spark-warehouse/
+metastore_db/
+derby.log
 
 
 

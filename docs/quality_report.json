@@ -1,0 +1,52 @@
+{
+  "run_at": "2026-10-26T14:20:04",
+  "passed": 9,
+  "total": 9,
+  "checks": [
+    {
+      "check": "1.fact_appointments_monthly total",
+      "status": "PASS",
+      "detail": "742,804,525 vs expected 742,804,525"
+    },
+    {
+      "check": "2.fact_appointments_by_category total",
+      "status": "PASS",
+      "detail": "296,046,770 vs expected 296,046,770"
+    },
+    {
+      "check": "3.fact_appointments_by_duration total",
+      "status": "PASS",
+      "detail": "167,980,692 vs expected 167,980,692"
+    },
+    {
+      "check": "4. Regional and category monthly totals reconcile, Aug 2021 - Jun 2022",
+      "status": "PASS",
+      "detail": "11 months compared, 0 differ"
+    },
+    {
+      "check": "5. Every sub-ICB code exists in dim_geography",
+      "status": "PASS",
+      "detail": "0 orphan rows"
+    },
+    {
+      "check": "6. Every booking-wait label is a known band",
+      "status": "PASS",
+      "detail": "0 rows with an unknown label"
+    },
+    {
+      "check": "7. Every duration label is a known band",
+      "status": "PASS",
+      "detail": "0 rows with an unknown label"
+    },
+    {
+      "check": "8. No null dates or counts in the category fact",
+      "status": "PASS",
+      "detail": "0 null rows"
+    },
+    {
+      "check": "9. Duration covers at least 90% of category appointments each month",
+      "status": "PASS",
+      "detail": "lowest month 90.9%"
+    }
+  ]
+}

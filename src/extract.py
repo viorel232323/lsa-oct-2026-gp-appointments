@@ -4,11 +4,13 @@ import pandas as pd
 
 import hashlib
 import json
-from datetime import datetime, timezone 
+from datetime import datetime, timezone
+import config
 
 
-SOURCE = Path(r"C:\lsa-oct-2026-external\Data Engineering\data")    #Source files(actual)
-ROW = Path("data/raw")                                              #empty
+SOURCE = config.SOURCE                                              #Source files(actual)
+ROW = config.RAW                                                    #empty
+ROW.mkdir(parents=True, exist_ok=True)
 
 
 xlsx = SOURCE / "actual_duration.csv.xlsx"                          #xlsx(actual)
@@ -57,12 +59,13 @@ manifest = []
 
 for name in MANIFEST_FILES:
     manifest.append(file_info(ROW/name))
+    
     print("recorded",name)
 #Test2-Succesfull: print(manifest)
 
 
 #Write the JSON file
-DOCS = Path("docs")
+DOCS = config.DOCS
 
 with open(DOCS / "manifest.json", "w",encoding="utf-8") as f:
     json.dump(manifest, f, indent=2)
