@@ -53,15 +53,28 @@ def summarise_transform(args):
     return "; ".join(parts)
 
 
+FACT_TABLES = {"regional": "fact_appointments_monthly",
+               "categories": "fact_appointments_by_category",
+               "duration": "fact_appointments_by_duration"}
+
+
 def summarise_load(args):
     con = duckdb.connect(args.warehouse, read_only=True)
     facts, dims = con.execute("""
         SELECT COUNT(*) FILTER (WHERE table_name LIKE 'fact_%'),
                COUNT(*) FILTER (WHERE table_name LIKE 'dim_%')
         FROM information_schema.tables""").fetchone()
-    con.close()
     assert (facts, dims) == (3, 5), f"expected 3 facts and 5 dimensions, found {facts} and {dims}"
-    return f"{facts} facts, {dims} dimensions"
+    parts = []
+    for name, table in FACT_TABLES.items():
+        rows, total = con.execute(
+            f"SELECT COUNT(*), SUM(count_of_appointments) FROM {table}").fetchone()
+        exp = config.EXPECTED[name]
+        assert rows == exp["rows"] and total == exp["total"], \
+            f"{table}: {rows:,} rows / {total:,} != expected {exp['rows']:,} / {exp['total']:,}"
+        parts.append(f"{rows:,} rows {total:,}")
+    con.close()
+    return f"{facts} facts, {dims} dimensions; " + " / ".join(parts)
 
 
 def summarise_checks(args):

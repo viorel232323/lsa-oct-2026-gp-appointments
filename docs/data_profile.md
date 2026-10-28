@@ -158,3 +158,43 @@ The 7 duration bands add up exactly to the total of 167,980,692.
 - Alphabetical order puts `11-15 Minutes` before `6-10 Minutes`.
 
 **6. No duplicates.** 0 exact duplicate rows.
+
+## Totals and completed gaps (updated Week 3)
+
+### Total appointments: the evidence that nothing was lost
+| File | Raw rows | Total appointments (raw) | Total after cleaning |
+|---|---|---|---|
+| `appointments_regional.csv` | 596,821 | 742,804,525 | 742,804,525 (295,692 rows after summing look-alikes) |
+| `national_categories.csv` | 817,394 | 296,046,770 | 296,046,770 |
+| `actual_duration.csv` | 137,793 | 167,980,692 | 167,980,692 |
+
+The totals are identical before and after cleaning and after loading into the warehouse.
+
+### Date ranges
+| File | First month | Last month | Months |
+|---|---|---|---|
+| regional | 2020-01 | 2022-06 | 30 |
+| categories | 2021-08 | 2022-06 | 11 |
+| duration | 2021-12 | 2022-06 | 7 |
+
+### The 8 booking-wait bands (`time_between_book_and_appointment`), in order
+Same Day | 1 Day | 2 to 7 Days | 8 to 14 Days | 15 to 21 Days | 22 to 28 Days | More than 28 Days | Unknown / Data Quality
+
+(After collapsing repeated spaces, D4. All 8 match `dim_booking_wait` exactly: check 6 finds 0 unknown labels.)
+
+### The 7 duration bands (`actual_duration`), in order
+1-5 Minutes | 6-10 Minutes | 11-15 Minutes | 16-20 Minutes | 21-30 Minutes | 31-60 Minutes | Unknown / Data Quality
+
+`Unknown / Data Quality` = null, under 1 minute or over 60 minutes (`metadata_nhs.txt`).
+
+### The 5 service settings (`service_setting`)
+General Practice - Primary Care Network - Extended Access Provision - Other - Unmapped
+
+### The hidden byte-order mark 
+`national_categories.csv` starts with 3 invisible bytes, **EF BB BF** (a UTF-8 byte-order mark). pandas hides it, but Spark without a schema names the first column `\ufeffappointment_date`. Handled by the explicit schema (D8).
+
+### Duration grain (now checked)
+One row = **sub-ICB × day × duration band** (`sub_icb_location_code`, `appointment_date`, `actual_duration`): 0 duplicate keys in 137,793 rows (D16).
+
+### Why duration covers only 90.9–92.2% of category appointments
+Duration only counts consultations that **took place**, while the category file counts all appointments, including DNA and Unknown status. Each month, duration's share equals the Attended share to 0.1% (D30).

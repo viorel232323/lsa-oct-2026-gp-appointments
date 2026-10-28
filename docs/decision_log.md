@@ -92,9 +92,82 @@ Numbers come from `src/transform.py` and `docs/data_profile.md`.
 - **Why:** each row is already unique on its key (sub-ICB code, date, duration band).
 - **Evidence:** 0 key duplicates; **rows 137,793 in and out**; total 167,980,692 **unchanged**.
 
-## Tests
+<br>
+<br>
+
+# Tests
 
 ### D17. Tests read the clean Parquet with pandas
 - **What:** `tests/test_clean_data.py` has 6 tests: row counts, totals preserved, no duplicate keys, no double spaces, dates day-first, counts positive.
 - **Why:** pandas starts in seconds with no Java. A second, independent tool also proves the Parquet files are readable outside Spark. Totals are compared with the raw CSVs, not only with typed numbers.
 - **Evidence:** 6 passed (result in README). Test was broken on purpose once and failed, proving it catches its rule.
+
+## Load & Automate
+
+### D18. Star schema: 3 fact tables, 5 dimensions
+- **What:** in `warehouse/warehouse.duckdb`:
+  - `fact_appointments_monthly` (ICB * month * status * staff type * mode * booking wait)
+  - `fact_appointments_by_category` (sub-ICB * day * service setting * national category)
+  - `fact_appointments_by_duration` (sub-ICB * day * duration band)
+  - `dim_geography` (106 sub-ICBs), `dim_date` (every day 2020-01-01 to 2022-12-31), `dim_booking_wait` (8 bands), `dim_duration_band` (7 bands), `dim_national_category` (one row per category).
+- **Why:** facts hold the counts and dimensions hold the descriptions, once. Three facts, not one, because they have different grains and date ranges (30, 11 and 7 months); forcing them into one table would invent appointments.
+- **Evidence:** fact rows and totals equal exactly: 295,692 / 742,804,525 · 817,394 / 296,046,770 · 137,793 / 167,980,692.
+
+### D19. NHS codes are the keys
+- **What:** ICB and sub-ICB codes join the tables; no invented ID numbers.
+- **Why:** they are real, stable identifiers. Invented keys would add a mapping step with no benefit at this size.
+
+### D20. One name and one type per concept
+- **What:** the month is always `appointment_month` as text `YYYY-MM` (all facts and `dim_date`); the day is always `appointment_date` as DATE; the sub-ICB code is always `sub_icb_code` (duration's `sub_icb_location_code` is renamed in the load).
+- **Why:** the month comes back from the Parquet folder names as text, so text is kept everywhere. Mixing types for one concept makes joins silently return nothing. `YYYY-MM` text also sorts in date order, so `BETWEEN '2021-08' AND '2022-06'` works.
+
+### D21. Descriptions moved out of the facts
+- **What:** names, ICB and region codes → `dim_geography`; `context_type` → `dim_national_category`.
+- **Why:** each description is stored once instead of repeated on every row.
+- **Evidence:** checked first: each national category has exactly 1 context type and each sub-ICB code has exactly 1 name, ICB and region (0 conflicts), so nothing is lost or duplicated.
+
+### D22. Band dimensions have an explicit sort order
+- **What:** `sort_order` 1–8 in `dim_booking_wait` (Same Day -> More than 28 Days, Unknown last) and 1–7 in `dim_duration_band` (1-5 -> 31-60 Minutes, Unknown last).
+- **Why:** alphabetical order puts `1 Day` before `Same Day` and `11-15` before `6-10`. The order is decided once here, so the Week 4 charts don't have to.
+- **Evidence:** 0 fact labels missing from their dimension (checks 6–7 and tests).
+
+### D23. Load is safe to rerun
+- **What:** dimensions are rebuilt each run (`CREATE OR REPLACE`). Facts are loaded month by month: `BEGIN` → delete the month → insert the month → `COMMIT`, with `ROLLBACK` on any error.
+- **Why:** a scheduled job will run twice one day. A rerun must replace, never double. The transaction means a failure halfway leaves the month as it was.
+- **Evidence:** full pipeline run 3 times in a row → identical rows and totals, exit 0 each time; the test "load the same month twice" passes.
+
+### D24. No DISTINCT or GROUP BY in the fact load
+- **Why:** look-alike rows were already summed in D6. Aggregating again would delete real appointments.
+- **Evidence:** check 4: 11 months compared, 0 differ.
+
+### D25. Paths live in `config.py`
+- **What:** `config.py` holds every path (`data/source`, `data/raw`, `data/clean`, the warehouse, `docs`) and the Hadoop folder. Environment variables (`GP_SOURCE`, `GP_RAW`, `GP_CLEAN`, `GP_WAREHOUSE`) or `run_pipeline.py --raw/--out/...` override them. The Hadoop settings apply on Windows only. The original NHS files sit untouched in `data/source`, and extract copies them into `data/raw`.
+- **Why:** no path is tied to one machine. Proven: the project moved to a second laptop with no code changes, only installs.
+
+### D26. Expected figures are constants, checked inside the pipeline
+- **What:** `EXPECTED` in `config.py` holds raw rows, clean rows and totals. `transform.py` asserts against them, and `run_pipeline.py` checks every stage's output: raw rows, Parquet rows and totals, warehouse rows and totals, 3 facts + 5 dimensions.
+- **Why:** comparing with a number from the same run only proves arithmetic works, and a printed "PASS" lets a bad run carry on.
+
+### D27. Every label column cleaned, capitals checked
+- **What:** the space clean-up (D4) now covers every label column, including names. A new transform check fails if two labels differ only by capital letters.
+- **Evidence:** the check passes on every column; only `hcp_type` needed a fix (D5).
+
+### D28. One command, exit codes, log file
+- **What:** `run_pipeline.py` runs extract -> transform -> load -> checks, each as its own process, and stops at the first failure. Exit codes: 0 = **loaded**, 2 = a quality check **failed**, 1 = **crashed**. Each stage's figures and duration go to the screen and to `logs/pipeline.log`.
+- **Why:** a notebook can't be scheduled; the exit code lets a scheduler tell a good run from a bad one without reading the log. Separate processes mean Spark shuts down fully after transform and the DuckDB file is never held by two stages.
+- **Evidence:** 3 consecutive runs, exit 0 each.
+
+### D29. Run all 9 checks, then judge
+- **What:** `src/checks.py` runs all 9 checks, records each with the figures compared in `docs/quality_report.json`, then exits 2 if any failed.
+- **Why:** one failure must not hide the other eight. Checks compare the warehouse against `EXPECTED`, not against itself.
+- **Evidence:** 9/9 PASS. A test inserts one month twice on purpose, and checks 1 and 4 then FAIL, proving the checks can fail.
+
+### D30. Check 9: duration covers about 91%, which is expected
+- **What:** the threshold is 90%, not 100%.
+- **Why:** `metadata_nhs.txt` defines actual duration as "the length in minutes of the consultation **that took place**". The category file counts all appointments, including DNA and Unknown status; the duration file counts only consultations that happened. Durations that are null, under 1 minute or over 60 minutes go to "Unknown / Data Quality", and recording differs by GP system supplier (EMIS, TPP). Forcing the two to agree would create a reporting error.
+- **Evidence:** in every month, duration's share of category appointments equals the Attended share to 0.1% (e.g. Dec 2021: 90.9% vs 90.9%; May 2022: 92.2% vs 92.2%). Lowest month: 90.9% (Dec 2021). Query: `src/explore_coverage.py`.
+
+### D31. Tests use a temporary warehouse
+- **What:** `tests/test_warehouse.py` builds its own warehouse in a throw-away folder, using the real load functions.
+- **Why:** tests never touch `warehouse/warehouse.duckdb`, and they test the actual pipeline code.
+- **Evidence:** 16 tests pass 
